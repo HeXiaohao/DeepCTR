@@ -43,42 +43,56 @@ def AutoInt(linear_feature_columns, dnn_feature_columns, att_layer_num=3, att_em
     :return: A Keras model instance.
     """
 
+    # 边缘参数处理
     if len(dnn_hidden_units) <= 0 and att_layer_num <= 0:
         raise ValueError("Either hidden_layer or att_layer_num must > 0")
 
+    # 初始化输入的 dnn 特征的 keras tensor
     features = build_input_features(dnn_feature_columns)
     inputs_list = list(features.values())
 
+    # 这里没有看太懂。感觉是 autoint 输入的线性特征部分，这里直接 * 一个 linear
     linear_logit = get_linear_logit(features, linear_feature_columns, seed=seed, prefix='linear',
                                     l2_reg=l2_reg_linear)
 
+    # 没太看懂这部分用来干什么。处理成系数特征向量 list + 稠密特征 list
     sparse_embedding_list, dense_value_list = input_from_feature_columns(features, dnn_feature_columns,
                                                                          l2_reg_embedding, seed)
 
+    # 合并当前的稠密向量
     att_input = concat_func(sparse_embedding_list, axis=1)
 
+    # att_layer_num 应该是多头机制里面的头数量，或者说注意力空间的个数
+    # 对于每个 fields 的向量，互相计算交叉注意力
     for _ in range(att_layer_num):
         att_input = InteractingLayer(
             att_embedding_size, att_head_num, att_res)(att_input)
     att_output = Flatten()(att_input)
 
+    # 把稀疏特征的 embedding list 和稠密值的 list concat 在一起
     dnn_input = combined_dnn_input(sparse_embedding_list, dense_value_list)
 
+    # 同时拥有 deep 部分和 Interacting 部分
     if len(dnn_hidden_units) > 0 and att_layer_num > 0:  # Deep & Interacting Layer
         deep_out = DNN(dnn_hidden_units, dnn_activation, l2_reg_dnn, dnn_dropout, dnn_use_bn, seed=seed)(dnn_input)
         stack_out = Concatenate()([att_output, deep_out])
         final_logit = Dense(1, use_bias=False)(stack_out)
+    # 只有 deep 部分
     elif len(dnn_hidden_units) > 0:  # Only Deep
         deep_out = DNN(dnn_hidden_units, dnn_activation, l2_reg_dnn, dnn_dropout, dnn_use_bn, seed=seed)(dnn_input, )
         final_logit = Dense(1, use_bias=False)(deep_out)
+    # 只有 Interacting 部分
     elif att_layer_num > 0:  # Only Interacting Layer
         final_logit = Dense(1, use_bias=False)(att_output)
     else:  # Error
         raise NotImplementedError
 
+    # 最后把 final_logit 和线性部分结果相加在一起
     final_logit = add_func([final_logit, linear_logit])
+    # 预测层
     output = PredictionLayer(task)(final_logit)
 
+    # 构建 model
     model = Model(inputs=inputs_list, outputs=output)
 
     return model
