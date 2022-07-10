@@ -1,3 +1,8 @@
+# 20220711
+# 在 macbook m1 pro 上成功运行此例子
+# Regression: Movielens
+# test MSE 12.7368
+
 import pandas as pd
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split

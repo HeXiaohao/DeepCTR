@@ -1,7 +1,9 @@
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
-from tensorflow.python.keras.preprocessing.sequence import pad_sequences
+# from tensorflow.python.keras.preprocessing.sequence import pad_sequences
+# tf2.9 版本的 API 改变了，必须修改为如下形式
+from tensorflow.keras.preprocessing.sequence import pad_sequences
 
 from deepctr.feature_column import SparseFeat, VarLenSparseFeat,get_feature_names
 from deepctr.models import DeepFM

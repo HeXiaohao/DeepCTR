@@ -1,3 +1,9 @@
+# 20220711
+# 在 macbook m1 pro 上成功运行此例子
+# Classification: Criteo with feature hashing on the fly
+# test LogLoss 0.5604
+# test AUC 0.5735
+
 import pandas as pd
 from sklearn.metrics import log_loss, roc_auc_score
 from sklearn.model_selection import train_test_split
